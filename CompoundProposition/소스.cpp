@@ -4,10 +4,9 @@
 #include <vector>
 #include <unordered_map>
 
-//Á¦°ö ±¸ÇÏ´Â ÇÔ¼ö
 int myPow(int, int);
 
-//Áø¸®°ª(true, false) ÀúÀå class
+//ì§„ë¦¬ê°’(true, false) ì €ìž¥ class
 class TruthAssignment {
 private:
 	std::unordered_map<std::string, bool> truthMap;
@@ -54,7 +53,7 @@ public:
 	}
 };
 
-//´Ü¼ø ¸íÁ¦ ³í¸® ¿¬»ê class
+//ë‹¨ìˆœ ëª…ì œ ë…¼ë¦¬ ì—°ì‚° class
 class LogicalOperator {
 private:
 	bool p, q;
@@ -67,7 +66,7 @@ public:
 };
 
 
-//º¹ÇÕ¸íÁ¦ class
+//ë³µí•©ëª…ì œ class
 class CompoundPropositionOperator {
 private:
 	std::vector<char> postfix;
@@ -281,7 +280,7 @@ public:
 		for (char op : CompoundPropositionOperator().validOperator) {
 			switch (op) {
 			case '~': { std::cout << op << "(negation), "; break; }
-			case '&': { std::cout << "¡¤(conjunction), "; break; }
+			case '&': { std::cout << "Â·(conjunction), "; break; }
 			case 'V': { std::cout << op << "(disjunction), "; break; }
 			case '>': { std::cout << "->(material implication), "; break; }
 			case '<': { std::cout << "<->(biconditional), "; break; }
@@ -289,12 +288,11 @@ public:
 			default: std::cout << op << ", ";
 			}
 		}
-				std::cout << std::endl;
-		}
+		std::cout << std::endl;
 	}
 };
 
-//Á¦°öÀ» ¸®ÅÏÇÏ´Â ÇÔ¼ö
+//ì œê³±ì„ ë¦¬í„´í•˜ëŠ” í•¨ìˆ˜
 int myPow(int base, int exponent) {
 	int result = 1;
 	for (int i = 0; i < exponent; ++i)
@@ -309,7 +307,7 @@ int myPow(int base, int exponent) {
 int main()
 {
 	CompoundPropositionOperator::printAllLogicalOperator();
-	std::cout << "Example Input : 1. (P¡¤Q)VR	2. ~[CV(AV~D)]¡¤(A->~C)	3. P<->Q" << std::endl;
+	std::cout << "Example Input : 1. (PÂ·Q)VR	2. ~[CV(AV~D)]Â·(A->~C)	3. P<->Q" << std::endl;
 	std::cout << "Input Your Compound Proposition here >> ";
 	std::string line;
 	std::getline(std::cin, line);
@@ -320,7 +318,7 @@ int main()
 	std::cout << "___";
 	for (char c : line) {
 		if (c == ' ') continue;
-		else if (c == '&') std::cout << "¡¤";
+		else if (c == '&') std::cout << "Â·";
 		else std::cout << c;
 	}
 	std::cout << std::endl;
