@@ -296,5 +296,3 @@ int myPow(int base, int exponent) {
 		result *= base;
 	return result;
 }
-
-
