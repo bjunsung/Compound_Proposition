@@ -289,7 +289,8 @@ public:
 			default: std::cout << op << ", ";
 			}
 		}
-		std::cout << std::endl;
+				std::cout << std::endl;
+		}
 	}
 };
 
@@ -335,3 +336,4 @@ int main()
 	}
 
 }
+
