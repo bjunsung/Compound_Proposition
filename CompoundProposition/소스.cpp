@@ -4,7 +4,21 @@
 #include <vector>
 #include <unordered_map>
 
-//제곱 구하는 함수
+
+//단순명제 class
+class LogicalOperator {
+private:
+	static bool p, q;
+public:
+	static bool logicalNot(bool p) { return !p; }
+	static bool logicalAnd(bool p, bool q) { return p && q; }
+	static bool logicalOr(bool p, bool q) { return p || q; }
+	static bool logicalImplies(bool p, bool q) { return !(p && !q); }
+	static bool logicalEquivalent(bool p, bool q) { return p == q; }
+};
+
+
+
 int myPow(int, int);
 
 //진리값(true, false) 저장 class
@@ -12,7 +26,6 @@ class TruthAssignment {
 private:
 	std::unordered_map<std::string, bool> truthMap;
 	std::vector<std::string> keys;
-
 public:
 	void addProposition(char proposition) {
 		std::string s(1, proposition);
@@ -33,12 +46,11 @@ public:
 		for (int i = 0; i < size; ++i)
 			truthMap[keys[i]] = num / myPow(2, size - (i + 1)) % 2 == 0;
 	}
-	void printTruthMap() {
+	void printTruthValue() {
 		std::string truthValue;
 		for (std::string proposition : keys) {
-			if (truthMap[proposition] == true) truthValue = "T";
-			else truthValue = "F";
-			std::cout << truthValue << " | ";
+			truthValue = truthMap[proposition] ? "T" : "F";
+			std::cout << truthValue + " | ";
 		}
 	}
 	void printAllPropositions() {
@@ -49,33 +61,22 @@ public:
 				std::cout << "___" << key;
 		}
 	}
-	int getSize() {
+	int getKeySize() {
 		return (int)keys.size();
 	}
 };
 
-//단순 명제 논리 연산 class
-class LogicalOperator {
-private:
-	bool p, q;
-public:
-	bool logicalNot(bool p) { return !p; }
-	bool logicalAnd(bool p, bool q) { return p && q; }
-	bool logicalOr(bool p, bool q) { return p || q; }
-	bool logicalImplies(bool p, bool q) { return !(p && !q); }
-	bool logicalEquivalent(bool p, bool q) { return p == q; }
-};
 
 
 //복합명제 class
-class CompoundPropositionOperator {
+class CompoundProposition {
 private:
 	std::vector<char> postfix;
 	std::stack<char> operator_stack;
 	TruthAssignment truthData;
-	char validOperator[11] = { '~', '&', 'V', '>', '<', '[', '{', '(', ')', '}', ']'};
+	char validOperator[11] = { '~', '&', 'V', '>', '<', '[', '{', '(', ')', '}', ']' };
 	void popStackTilLeftBracket(char bracketRight) {
-		char bracketLeft;
+		char bracketLeft = ' ';
 		switch (bracketRight) {
 		case ')': bracketLeft = '('; break;
 		case '}': bracketLeft = '{'; break;
@@ -99,7 +100,6 @@ private:
 			operator_stack.pop();
 		}
 	}
-
 	void popStackTilEmpty() {
 		while (!operator_stack.empty()) {
 			char op = operator_stack.top();
@@ -107,12 +107,15 @@ private:
 			postfix.push_back(op);
 		}
 	}
+	bool calcLogicalOperation(bool p, char op) {
+		return LogicalOperator().logicalNot(p);
+	}
 	bool calcLogicalOperation(bool p, bool q, char op) {
 		switch (op) {
-		case '&': return p && q;
-		case 'V': return p || q;
-		case '>': return !p || q;
-		case '<': return p == q;
+		case '&': return LogicalOperator().logicalAnd(p, q);
+		case 'V': return LogicalOperator().logicalOr(p, q);
+		case '>': return LogicalOperator().logicalImplies(p, q);
+		case '<': return LogicalOperator().logicalEquivalent(p, q);
 		default: throw std::runtime_error(std::string("Invalid Operator : ") + op);
 		}
 	}
@@ -122,16 +125,12 @@ private:
 				return true;
 		return false;
 	}
-	
 	bool isASCII(char c) {
-		if ((unsigned char)c > 127)
-			return false;
-		else
-			return true;
+		return !((unsigned char)c > 127);
 	}
 	std::string inputLinePreprocessing(std::string inputLine) {
 		for (int i = 0; i < inputLine.size(); ++i) {
-			if (!isASCII(inputLine.at(i))) {
+			if (!isASCII(inputLine.at(i))) { // · to &
 				inputLine[i] = '&';
 				inputLine.erase(i + 1, 1);
 			}
@@ -142,12 +141,10 @@ private:
 		}
 		return inputLine;
 	}
-public:
-	CompoundPropositionOperator() {}
-	CompoundPropositionOperator(std::string inputLine) {
-		inputLine = inputLinePreprocessing(inputLine);
+	bool getTruthValueForEachCase(int i) {
+		truthData.setPropositionValueByStep(i);
 		try {
-			infixToPostfix(inputLine);
+			return calc_postfix();
 		}
 		catch (const std::runtime_error& e) {
 			std::cout << e.what() << std::endl;
@@ -184,101 +181,74 @@ public:
 		popStackTilEmpty();
 		truthData.setKeys();
 	}
-
-	std::vector<char> clone()
+	std::vector<char> clone_postfix()
 	{
 		std::vector<char> cloned;
 		for (char proposition : postfix)
 			cloned.push_back(proposition);
 		return cloned;
 	}
-
-	bool calc_postfix() {
-		std::vector<char> cloned = this->clone();
-		std::stack<std::string> stack;
-		for (char c : cloned) {
-			if (c != 'V' &&('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')) {
-				std::string s(1, c);
-				stack.push(s);
-			}
-			else if (c == '~') {
-				if (stack.empty())
-					throw std::runtime_error("Invalid Compound Proposition");
-				std::string p = stack.top();
-				stack.pop();
-				bool truthValue;
-				if (p == "True")
-					truthValue = true;
-				else if (p == "False")
-					truthValue = false;
-				else
-					truthValue = !truthData.getPropositionValue(p);
-				if (truthValue)
-					stack.push("True");
-				else
-					stack.push("False");
-			}
-			else { // Truth Operator except '~' 
-				if (stack.empty())
-					throw std::runtime_error("Invalid Compound Proposition");
-				std::string q = stack.top();
-				stack.pop();
-				if (stack.empty())
-					throw std::runtime_error("Invalid Compound Proposition");
-				std::string p = stack.top();
-				stack.pop();
-				bool p_value;
-				if (p == "True")
-					p_value = true;
-				else if (p == "False")
-					p_value = false;
-				else
-					p_value = truthData.getPropositionValue(p);
-				bool q_value;
-				if (q == "True")
-					q_value = true;
-				else if (q == "False")
-					q_value = false;
-				else
-					q_value = truthData.getPropositionValue(q);
-				bool truthValue = calcLogicalOperation(p_value, q_value, c);
-				if (truthValue)
-					stack.push("True");
-				else
-					stack.push("False");
-			}
-
-		}
-		if ((int)stack.size() != 1)
+	std::string pop(std::stack<std::string>& stack) {
+		if (stack.empty())
 			throw std::runtime_error("Invalid Compound Proposition");
-		std::string result = stack.top();
-		if (result == "True") return true;
-		else return false;
+		std::string s = stack.top();
+		stack.pop();
+		return s;
+	}
+	bool getPropositionValue(const std::string& p) {
+		bool truthValue;
+		if (p == "True")
+			truthValue = true;
+		else if (p == "False")
+			truthValue = false;
+		else
+			truthValue = truthData.getPropositionValue(p);
+		return truthValue;
+	}
+	bool calc_postfix() {
+		std::vector<char> cloned_postfix = this->clone_postfix();
+		std::stack<std::string> evalStack;  //단순명제나 그 명제들의 연산 결과를 string type으로 stack에 넣음
+		for (char c : cloned_postfix) {
+			if (c != 'V' && ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')) {
+				std::string s(1, c);
+				evalStack.push(s);
+			}
+			else if (c == '~') { // case Truth Operator is '~' 
+				std::string p = pop(evalStack);
+				bool truthValue = getPropositionValue(p);
+				bool calculatedTruthValue = calcLogicalOperation(truthValue, '~');
+				evalStack.push(calculatedTruthValue ? "True" : "False");
+			}
+			else { // case Truth Operator except '~' 
+				std::string q = pop(evalStack);
+				std::string p = pop(evalStack);
+				bool p_value = getPropositionValue(p);
+				bool q_value = getPropositionValue(q);
+				bool truthValue = calcLogicalOperation(p_value, q_value, c);
+				evalStack.push(truthValue ? "True" : "False");
+			}
+		}
+		if ((int)evalStack.size() != 1)
+			throw std::runtime_error("Invalid Compound Proposition");
+		std::string result = evalStack.top();
+		return result == "True";
 	}
 
-	bool getTruthValueForEachCase(int i) {
-		truthData.setPropositionValueByStep(i);
+public:
+	CompoundProposition() {}
+	CompoundProposition(std::string inputLine) {
+		inputLine = inputLinePreprocessing(inputLine);
 		try {
-			return calc_postfix();
+			infixToPostfix(inputLine);
 		}
 		catch (const std::runtime_error& e) {
 			std::cout << e.what() << std::endl;
 			exit(1);
 		}
 	}
-
-	int getSize() {
-		return truthData.getSize();
-	}
-	void printTruthMap() {
-		truthData.printTruthMap();
-	}
-	void printAllPropositions() {
-		truthData.printAllPropositions();
-	}
 	static void printAllLogicalOperator() {
 		std::cout << "Logical Operators : ";
-		for (char op : CompoundPropositionOperator().validOperator) {
+		for (char op : CompoundProposition().validOperator) {
 			switch (op) {
 			case '~': { std::cout << op << "(negation), "; break; }
 			case '&': { std::cout << "·(conjunction), "; break; }
@@ -291,7 +261,33 @@ public:
 		}
 		std::cout << std::endl;
 	}
+	void printTruthTable(std::string line) {
+		std::cout << "*  *  *  *  *" << std::endl << "<TRUTH TABLE>" << std::endl << "*  *  *  *  *" << std::endl;
+		truthData.printAllPropositions();
+		std::cout << "___" << line << std::endl;
+		for (int i = 0; i < pow(2, truthData.getKeySize()); ++i) {
+			bool truthValueOfCompoundProposition = getTruthValueForEachCase(i);
+			std::cout << i + 1 << " | ";
+			truthData.printTruthValue();
+			std::cout << " " << (truthValueOfCompoundProposition ? "T" : "F") << " " << std::endl;
+		}
+	}
 };
+
+
+
+int main()
+{
+	CompoundProposition::printAllLogicalOperator();
+	std::cout << "Example Input : 1. (P·Q)VR	2. ~[CV(AV~D)]·(A->~C)	3. P<->Q" << std::endl;
+	std::cout << "Input Your Compound Proposition here >> ";
+	std::string line;
+	std::getline(std::cin, line);
+	CompoundProposition myCompoundProposition(line);
+	myCompoundProposition.printTruthTable(line);
+}
+
+
 
 //제곱을 리턴하는 함수
 int myPow(int base, int exponent) {
@@ -302,36 +298,3 @@ int myPow(int base, int exponent) {
 }
 
 
-
-
-
-int main()
-{
-	CompoundPropositionOperator::printAllLogicalOperator();
-	std::cout << "Example Input : 1. (P·Q)VR	2. ~[CV(AV~D)]·(A->~C)	3. P<->Q" << std::endl;
-	std::cout << "Input Your Compound Proposition here >> ";
-	std::string line;
-	std::getline(std::cin, line);
-
-	CompoundPropositionOperator myCompoundProposition(line);
-	std::cout << "*  *  *  *  *" << std::endl << "<TRUTH TABLE>" << std::endl << "*  *  *  *  *" << std::endl;
-	myCompoundProposition.printAllPropositions();
-	std::cout << "___";
-	for (char c : line) {
-		if (c == ' ') continue;
-		else if (c == '&') std::cout << "·";
-		else std::cout << c;
-	}
-	std::cout << std::endl;
-	bool truthValueOfCompoundProposition;
-	std::string truthValue;
-	for (int i = 0; i < pow(2, myCompoundProposition.getSize()); ++i) {
-		truthValueOfCompoundProposition = myCompoundProposition.getTruthValueForEachCase(i);
-		std::cout << i + 1 << " | ";
-		myCompoundProposition.printTruthMap();
-		if (truthValueOfCompoundProposition == true) truthValue = "T";
-		else truthValue = "F";
-		std::cout << " " << truthValue << " " << std::endl;
-	}
-
-}
