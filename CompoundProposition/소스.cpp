@@ -6,15 +6,15 @@
 
 
 //단순명제 class
-class LogicalOperator {
+class SimpleProposition {
 private:
 	static bool p, q;
 public:
-	static bool logicalNot(bool p) { return !p; }
-	static bool logicalAnd(bool p, bool q) { return p && q; }
-	static bool logicalOr(bool p, bool q) { return p || q; }
-	static bool logicalImplies(bool p, bool q) { return !(p && !q); }
-	static bool logicalEquivalent(bool p, bool q) { return p == q; }
+	static bool calcLogicalNot(bool p) { return !p; }
+	static bool calcLogicalAnd(bool p, bool q) { return p && q; }
+	static bool calcLogicalOr(bool p, bool q) { return p || q; }
+	static bool calcLogicalImplies(bool p, bool q) { return !(p && !q); }
+	static bool calcLogicalEquivalent(bool p, bool q) { return p == q; }
 };
 
 
@@ -69,12 +69,13 @@ public:
 
 
 //복합명제 class
-class CompoundProposition {
+class ComplexProposition {
 private:
 	std::vector<char> postfix;
-	std::stack<char> operator_stack;
+	std::stack<char> connective_statck;
 	TruthAssignment truthData;
-	char validOperator[11] = { '~', '&', 'V', '>', '<', '[', '{', '(', ')', '}', ']' };
+	//valid logical connective : '~' (negation), '&' means '·'(conjunction), 'V' Big alphavet V means '∨'(disjunction), '>' means "->", '→'(material implication), '<' means "<->", '↔' 
+	char validConnective[11] = { '~', '&', 'V', '>', '<', '[', '{', '(', ')', '}', ']' };
 	void popStackTilLeftBracket(char bracketRight) {
 		char bracketLeft = ' ';
 		switch (bracketRight) {
@@ -83,44 +84,44 @@ private:
 		case ']': bracketLeft = '[';
 		}
 		while (true) {
-			if (operator_stack.empty()) {
+			if (connective_statck.empty()) {
 				std::string brkLeft(1, bracketLeft);
 				std::string brkRight(1, bracketRight);
 				throw std::runtime_error("Bracket Mismatch Error : matching '" + brkLeft + "' not found for '" + brkRight + "'");
 			}
-			char op = operator_stack.top();
-			operator_stack.pop();
+			char op = connective_statck.top();
+			connective_statck.pop();
 			if (op == bracketLeft)
 				break;
 			else
 				postfix.push_back(op);
 		}
-		if (!operator_stack.empty() && operator_stack.top() == '~') {
+		if (!connective_statck.empty() && connective_statck.top() == '~') {
 			postfix.push_back('~');
-			operator_stack.pop();
+			connective_statck.pop();
 		}
 	}
 	void popStackTilEmpty() {
-		while (!operator_stack.empty()) {
-			char op = operator_stack.top();
-			operator_stack.pop();
+		while (!connective_statck.empty()) {
+			char op = connective_statck.top();
+			connective_statck.pop();
 			postfix.push_back(op);
 		}
 	}
-	bool calcLogicalOperation(bool p, char op) {
-		return LogicalOperator().logicalNot(p);
+	bool calcSimplePropositon(bool p, char op) {
+		return SimpleProposition().calcLogicalNot(p);
 	}
-	bool calcLogicalOperation(bool p, bool q, char op) {
+	bool calcSimplePropositon(bool p, bool q, char op) {
 		switch (op) {
-		case '&': return LogicalOperator().logicalAnd(p, q);
-		case 'V': return LogicalOperator().logicalOr(p, q);
-		case '>': return LogicalOperator().logicalImplies(p, q);
-		case '<': return LogicalOperator().logicalEquivalent(p, q);
-		default: throw std::runtime_error(std::string("Invalid Operator : ") + op);
+		case '&': return SimpleProposition().calcLogicalAnd(p, q);
+		case 'V': return SimpleProposition().calcLogicalOr(p, q);
+		case '>': return SimpleProposition().calcLogicalImplies(p, q);
+		case '<': return SimpleProposition().calcLogicalEquivalent(p, q);
+		default: throw std::runtime_error(std::string("Invalid Logical Connective : ") + op);
 		}
 	}
-	bool isValidOperator(char op) {
-		for (char sample : validOperator)
+	bool isValidConnective(char op) {
+		for (char sample : validConnective)
 			if (op == sample)
 				return true;
 		return false;
@@ -143,13 +144,7 @@ private:
 	}
 	bool getTruthValueForEachCase(int i) {
 		truthData.setPropositionValueByStep(i);
-		try {
-			return calc_postfix();
-		}
-		catch (const std::runtime_error& e) {
-			std::cout << e.what() << std::endl;
-			exit(1);
-		}
+		return calc_postfix();
 	}
 	void infixToPostfix(std::string inputLine)
 	{
@@ -158,25 +153,20 @@ private:
 			else if (c != 'V' && ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')) {
 				truthData.addProposition(c);
 				postfix.push_back(c);
-				if (!operator_stack.empty() && operator_stack.top() == '~') {
+				if (!connective_statck.empty() && connective_statck.top() == '~') {
 					postfix.push_back('~');
-					operator_stack.pop();
+					connective_statck.pop();
 				}
 			}
-			else if (!isValidOperator(c)) {
+			else if (!isValidConnective(c)) {
 				std::string str_c(1, c);
-				throw std::runtime_error("Invalid Operator Detected : " + str_c);
+				throw std::runtime_error("Invalid Connective Detected : " + str_c);
 			}
 			else if (c == ']' || c == '}' || c == ')') {
-				try {
-					popStackTilLeftBracket(c);
-				}
-				catch (const std::runtime_error& e) {
-					std::cout << e.what() << std::endl;
-				}
+				popStackTilLeftBracket(c);
 			}
 			else
-				operator_stack.push(c);
+				connective_statck.push(c);
 		}
 		popStackTilEmpty();
 		truthData.setKeys();
@@ -213,42 +203,36 @@ private:
 				std::string s(1, c);
 				evalStack.push(s);
 			}
-			else if (c == '~') { // case Truth Operator is '~' 
+			else if (c == '~') { // case Logical Connective is '~' 
 				std::string p = pop(evalStack);
 				bool truthValue = getPropositionValue(p);
-				bool calculatedTruthValue = calcLogicalOperation(truthValue, '~');
+				bool calculatedTruthValue = calcSimplePropositon(truthValue, '~');
 				evalStack.push(calculatedTruthValue ? "True" : "False");
 			}
-			else { // case Truth Operator except '~' 
+			else { // case Logical Connective except '~' 
 				std::string q = pop(evalStack);
 				std::string p = pop(evalStack);
 				bool p_value = getPropositionValue(p);
 				bool q_value = getPropositionValue(q);
-				bool truthValue = calcLogicalOperation(p_value, q_value, c);
+				bool truthValue = calcSimplePropositon(p_value, q_value, c);
 				evalStack.push(truthValue ? "True" : "False");
 			}
 		}
 		if ((int)evalStack.size() != 1)
-			throw std::runtime_error("Invalid Compound Proposition");
+			throw std::runtime_error("Invalid Complex Proposition");
 		std::string result = evalStack.top();
 		return result == "True";
 	}
 
 public:
-	CompoundProposition() {}
-	CompoundProposition(std::string inputLine) {
+	ComplexProposition() {}
+	ComplexProposition(std::string inputLine) {
 		inputLine = inputLinePreprocessing(inputLine);
-		try {
-			infixToPostfix(inputLine);
-		}
-		catch (const std::runtime_error& e) {
-			std::cout << e.what() << std::endl;
-			exit(1);
-		}
+		infixToPostfix(inputLine);
 	}
-	static void printAllLogicalOperator() {
-		std::cout << "Logical Operators : ";
-		for (char op : CompoundProposition().validOperator) {
+	static void printAllValidConnective() {
+		std::cout << "Logical Connections : ";
+		for (char op : ComplexProposition().validConnective) {
 			switch (op) {
 			case '~': { std::cout << op << "(negation), "; break; }
 			case '&': { std::cout << "·(conjunction), "; break; }
@@ -275,17 +259,35 @@ public:
 };
 
 
+void printTruthTable()
+{
+	ComplexProposition::printAllValidConnective();
+	std::cout << "Example Input : 1. (P·Q)VR	2. ~[CV(AV~D)]·(A->~C)	3. P<->Q" << std::endl;
+	std::cout << "Input Your Complex Proposition here >> ";
+	std::string line;
+	std::getline(std::cin, line);
+	ComplexProposition myCompoundProposition(line);
+	myCompoundProposition.printTruthTable(line);
+}
 
 int main()
 {
-	CompoundProposition::printAllLogicalOperator();
-	std::cout << "Example Input : 1. (P·Q)VR	2. ~[CV(AV~D)]·(A->~C)	3. P<->Q" << std::endl;
-	std::cout << "Input Your Compound Proposition here >> ";
-	std::string line;
-	std::getline(std::cin, line);
-	CompoundProposition myCompoundProposition(line);
-	myCompoundProposition.printTruthTable(line);
+	while (true)
+	{
+		int n;
+		std::cout << "input number here(1.print truth table 2. stop)>>";
+		std::cin >> n;
+		std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); //입력버퍼 지우기
+		if (n == 1) {
+			try { printTruthTable(); }
+			catch (const std::runtime_error& e) {
+				std::cout << e.what() << std::endl;
+			}
+		}
+		else break;
+ 	}
 }
+
 
 
 
